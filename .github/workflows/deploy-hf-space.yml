@@ -1,0 +1,36 @@
+# Copies the app to a Hugging Face Space on every push to main.
+# One-off setup in GitHub: Settings -> Secrets and variables -> Actions
+#   Secret   HF_TOKEN  = a Hugging Face access token with write permission
+#   Variable HF_SPACE  = your Space id, for example muthuuk/uroagent
+name: Deploy to Hugging Face Space
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  deploy:
+    if: ${{ vars.HF_SPACE != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install huggingface_hub
+      - name: Upload to the Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: ${{ vars.HF_SPACE }}
+        run: |
+          python - <<'PY'
+          import os
+          from huggingface_hub import HfApi
+          api = HfApi(token=os.environ["HF_TOKEN"])
+          repo = os.environ["HF_SPACE"]
+          api.create_repo(repo, repo_type="space", space_sdk="gradio", exist_ok=True)
+          api.upload_folder(folder_path=".", repo_id=repo, repo_type="space",
+                            allow_patterns=["app.py", "LICENSE", "uroagent/**", "knowledge/**"])
+          for src, dst in [("space/README.md", "README.md"), ("space/requirements.txt", "requirements.txt")]:
+              api.upload_file(path_or_fileobj=src, path_in_repo=dst, repo_id=repo, repo_type="space")
+          print("Deployed to https://huggingface.co/spaces/" + repo)
+          PY
