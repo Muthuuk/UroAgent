@@ -40,8 +40,20 @@ def _any(text, words):
     return int(any(w in text for w in words))
 
 
+NEGATION = re.compile(r"\b(no|not|denies|denied|without|never|nil|negative for|free of|absence of)\b[^,.;]*")
+NEGATION_KEEP = re.compile(r"\b(?:not|no longer|never) able to\b|\bcan ?not\b|\bcan'?t\b")
+
+
+def remove_negated(text: str) -> str:
+    """Drop clauses that are negated ('no fever', 'denies burning') so they are not read as
+    present. Phrases that mean a problem ('not able to pass urine') are kept."""
+    keep = NEGATION_KEEP.sub("unable to", text).replace("unable to to", "unable to")
+    return NEGATION.sub(" ", keep)
+
+
 def extract_entities(note: str) -> dict:
-    t = " " + note.lower().replace("\n", " ") + " "
+    raw = " " + note.lower().replace("\n", " ") + " "
+    t = remove_negated(raw)
     e = {}
     e["age"] = _first(_num(r"(\d{2})[- ]?(?:year|yr)s?[- ]old", t, int), _num(r"\baged? (\d{2})", t, int), default=45)
     e["female"] = 0 if re.search(r"\b(man|male|gentleman|he|his)\b", t) else 1
@@ -58,19 +70,19 @@ def extract_entities(note: str) -> dict:
                                default=(12 if "frequency" in t or "frequent" in t else 6))
     e["nocturia"] = _first(_num(r"(\d+)\s*times\s*(?:at|a|per|each)\s*night", t), _num(r"up (\d+) times", t),
                           default=(2 if "nocturia" in t or "at night" in t else 0))
-    e["urgency"] = _any(t, ["urgen", "sudden need", "can't wait", "cannot wait", "rush to"])
+    e["urgency"] = _any(t, ["urgen", "sudden need", "can't wait", "cannot wait", "rush to", "can't hold", "hold it"])
     e["urge_incontinence"] = _any(t, ["leak", "wet herself", "wets", "incontinen", "accidents"])
-    e["dysuria"] = _any(t, ["burning", "dysuria", "stinging", "painful to pass", "hurts to pass"])
+    e["dysuria"] = _any(t, ["burning", "burns", "dysuria", "sting", "painful to pass", "hurts to pass", "hurts when i wee", "hurts when i pee", "pain when i wee", "pain when i pee"])
     e["suprapubic_pain"] = _any(t, ["bladder pain", "pelvic pain", "suprapubic", "lower tummy pain", "lower abdominal pain", "pressure"])
     e["pain_relief_on_voiding"] = _any(t, ["eased by passing", "relieved by voiding", "better after emptying", "eases after", "relief after passing"])
     e["pain_on_filling"] = _any(t, ["as the bladder fills", "worse when full", "builds up as", "worse as bladder fills"])
     e["pain_score"] = _first(_num(r"pain\D{0,12}(\d{1,2})\s*/\s*10", t), _num(r"(\d{1,2})\s*/\s*10", t),
                             default=(5 if e["suprapubic_pain"] else 0))
-    temp = _num(r"(3[6-9]\.\d|4[0-1]\.\d)", t)
+    temp = _num(r"(3[6-9]\.\d|4[0-1]\.\d)", raw)
     e["fever"] = int((temp is not None and temp >= 37.8) or "fever" in t or "feverish" in t)
     e["cloudy_urine"] = _any(t, ["cloudy", "smelly", "offensive urine", "foul", "strong smell"])
-    e["nitrite"] = int(bool(re.search(r"nitrites?\s*(positive|\+|present)", t)) or "nitrite positive" in t)
-    e["leukocytes"] = int(bool(re.search(r"(leukocytes?|leucocytes?)\s*(positive|\+|present)", t)) or "leukocyte positive" in t)
+    e["nitrite"] = int(bool(re.search(r"nitrites?\s*(positive|\+|present)", raw)) or "nitrite positive" in raw)
+    e["leukocytes"] = int(bool(re.search(r"(leukocytes?|leucocytes?)\s*(positive|\+|present|\d\+)", raw)) or "leukocyte positive" in raw)
     e["acute_onset"] = _any(t, ["sudden onset", "started suddenly", "came on suddenly", "since yesterday", "two days", "2 days", "3 days", "acute"])
     e["dietary_triggers"] = _any(t, ["coffee", "citrus", "spicy", "tomato", "alcohol makes", "acidic"])
     e["negative_cultures"] = _any(t, ["negative culture", "cultures negative", "cultures were negative", "no growth", "repeatedly negative"])

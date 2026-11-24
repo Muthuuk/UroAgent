@@ -97,5 +97,12 @@ def guideline_version_checker(guideline_name: str) -> dict:
             "advice": "Check the publisher's website for the current version before use."}
 
 
+def imaging_report_reader(report: str) -> dict:
+    """Read findings from a cystoscopy or radiology report (tumour, Hunner lesion, hydronephrosis, reflux, catheter status)."""
+    from .imaging import read_report
+    return read_report(report)
+
+
 TOOLS = {f.__name__: f for f in [fhir_patient_query, iciq_score_calculator, bpss_score_calculator,
-                                  lab_result_parser, drug_interaction_checker, audit_logger, guideline_version_checker]}
+                                  lab_result_parser, drug_interaction_checker, audit_logger, guideline_version_checker,
+                                  imaging_report_reader]}

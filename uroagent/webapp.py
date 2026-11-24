@@ -7,6 +7,8 @@ import gradio as gr
 from . import DISCLAIMER, __version__
 from .cli import EXAMPLES
 from .evaluate import fairness_check, run_evaluation
+from .imaging import IMAGING_DISCLAIMER, NoVisionBackend, analyse
+from .patient import PATIENT_DISCLAIMER, PatientAssistant
 from .scoring import iciq_oab, oleary_sant
 from .tools import TOOLS
 
@@ -18,10 +20,37 @@ TOOL_EXAMPLES = {
     "drug_interaction_checker": {"drug_list": ["oxybutynin", "amitriptyline", "mirabegron"], "age": 72, "systolic_bp": 165},
     "audit_logger": {"input": "example note", "event": "manual test"},
     "guideline_version_checker": {"guideline_name": "NICE NG123"},
+    "imaging_report_reader": {"report": "Flexible cystoscopy: trabeculated bladder, small papillary lesion left wall. SPC in situ, encrusted."},
 }
 
 
-def build_app(agent):
+PATIENT_EXAMPLES = ["It burns when I wee and I keep needing to go to the toilet.",
+                    "I keep getting sudden urges to pee and sometimes leak before I get there.",
+                    "I've had a sore bladder for months and it's worse when it's full.",
+                    "There's blood in my wee."]
+MODALITIES = ["CT", "MRI", "Ultrasound", "X-ray / KUB", "Micturating cystourethrogram (contrast)", "Cystoscopy image",
+              "Report only (cystoscopy or radiology)"]
+
+
+def build_app(agent, patient=None, vision=None):
+    patient = patient or PatientAssistant(agent)
+    vision = vision or NoVisionBackend()
+
+    def patient_chat(message, history, sid):
+        if not message.strip():
+            return history, sid
+        r = patient.reply(message, session_id=sid)
+        return (history or []) + [{"role": "user", "content": message}, {"role": "assistant", "content": r["response"]}], sid
+
+    def patient_new():
+        return [], str(uuid.uuid4())[:8]
+
+    def run_imaging(files, modality, question, consent):
+        paths = [f if isinstance(f, str) else getattr(f, "name", str(f)) for f in (files or [])]
+        if not paths:
+            return "Please upload at least one image, DICOM file or report."
+        return analyse(paths, modality=modality, question=question, backend=vision, consent=consent)["markdown"]
+
     def chat(message, history, thread_id):
         if not message.strip():
             return history, "", "", thread_id
@@ -53,7 +82,21 @@ def build_app(agent):
         gr.Markdown(f"# UroAgent v{__version__}\nMulti-agent decision support for overactive bladder (OAB), "
                     f"bladder pain syndrome (BPS) and urinary tract infection (UTI).\n\n**{DISCLAIMER}**")
         thread = gr.State(lambda: str(uuid.uuid4())[:8])   # a fresh thread per visitor
-        with gr.Tab("Ask UroAgent"):
+        psession = gr.State(lambda: str(uuid.uuid4())[:8])
+        with gr.Tab("Patients: ask about symptoms"):
+            gr.Markdown("**For people with bladder or urine symptoms.** Describe what is happening in your own words. "
+                        "You will get general information and advice on where to get help, not a diagnosis.\n\n"
+                        f"*{PATIENT_DISCLAIMER}* Please do not enter your name, address or other personal details.")
+            pbot = gr.Chatbot(height=420, label="Chat")
+            pmsg = gr.Textbox(placeholder="For example: it stings when I pee and I need to go all the time", label="Your symptoms")
+            with gr.Row():
+                psend = gr.Button("Send", variant="primary")
+                pclear = gr.Button("Start again")
+            gr.Examples(PATIENT_EXAMPLES, inputs=pmsg, label="Examples")
+            psend.click(patient_chat, [pmsg, pbot, psession], [pbot, psession]).then(lambda: "", None, pmsg)
+            pmsg.submit(patient_chat, [pmsg, pbot, psession], [pbot, psession]).then(lambda: "", None, pmsg)
+            pclear.click(patient_new, None, [pbot, psession])
+        with gr.Tab("Clinicians: ask UroAgent"):
             with gr.Row():
                 with gr.Column(scale=3):
                     bot = gr.Chatbot(height=460, label="Conversation")
@@ -68,6 +111,23 @@ def build_app(agent):
             send.click(chat, [msg, bot, thread], [bot, trace, soap, thread]).then(lambda: "", None, msg)
             msg.submit(chat, [msg, bot, thread], [bot, trace, soap, thread]).then(lambda: "", None, msg)
             clear.click(new_thread, None, [bot, trace, soap, thread])
+        with gr.Tab("Clinicians: imaging and reports"):
+            status = (f"Image model: **{vision.name}**." if getattr(vision, "available", False) else
+                      "Image model: **not loaded here** - reports are still read; images are described on the Hugging Face Space "
+                      "or in Colab with a GPU." + (f" ({vision.load_error})" if getattr(vision, "load_error", "") else ""))
+            gr.Markdown("Upload CT, MRI, ultrasound or contrast images (PNG, JPG or DICOM) and cystoscopy or radiology reports "
+                        f"(PDF or text). {status}\n\n**{IMAGING_DISCLAIMER}**")
+            with gr.Row():
+                with gr.Column():
+                    files = gr.File(file_count="multiple", label="Images, DICOM files or reports",
+                                    file_types=[".png", ".jpg", ".jpeg", ".dcm", ".dicom", ".pdf", ".txt"])
+                    modality = gr.Dropdown(MODALITIES, value="CT", label="Type of study")
+                    question = gr.Textbox(label="Clinical question", placeholder="e.g. Is the left ureter dilated? Is the SPC balloon in the bladder?")
+                    consent = gr.Checkbox(label="I confirm these files are anonymised or synthetic and contain no identifiable patient information")
+                    go = gr.Button("Analyse", variant="primary")
+                with gr.Column():
+                    img_out = gr.Markdown()
+            go.click(run_imaging, [files, modality, question, consent], img_out)
         with gr.Tab("Score calculator"):
             gr.Markdown("Item scores from the licensed ICIQ-OAB (0-4 each) and O'Leary-Sant questionnaires.")
             with gr.Row():
@@ -84,7 +144,7 @@ def build_app(agent):
             out = gr.Markdown()
             gr.Button("Calculate", variant="primary").click(score, iciq + icsi + icpi, out)
         with gr.Tab("Clinical tools (MCP)"):
-            gr.Markdown("The seven tools the agent can call, also available as a Model Context Protocol server "
+            gr.Markdown("The clinical tools the agent can call, also available as a Model Context Protocol server "
                         "(`python -m uroagent.mcp_server`). Synthetic patients: demo-001, demo-002, demo-003.")
             name = gr.Dropdown(list(TOOLS), value="drug_interaction_checker", label="Tool")
             args = gr.Code(value=json.dumps(TOOL_EXAMPLES["drug_interaction_checker"], indent=2), language="json", label="Input (JSON)")

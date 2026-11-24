@@ -86,3 +86,76 @@ def test_mcp_server_lists_all_tools():
     from uroagent.mcp_server import build_server
     names = {t.name for t in asyncio.run(build_server().list_tools())}
     assert names == set(tools.TOOLS)
+
+
+# ---------------------------------------------------------------- negation, patient mode, imaging
+from uroagent.imaging import VisionBackend, analyse, read_report
+from uroagent.patient import PatientAssistant
+
+
+def test_negated_findings_are_not_counted():
+    e = extract_entities("30-year-old woman, burning, no fever, denies blood, not cloudy")
+    assert e["dysuria"] == 1 and e["fever"] == 0 and e["cloudy_urine"] == 0
+    assert safety.red_flags("no blood in the urine and no loin pain") == []
+    assert [n for n, _ in safety.red_flags("I am not able to pass urine")] == ["urinary retention"]
+
+
+def test_patient_mode_never_shows_a_diagnosis_label():
+    p = PatientAssistant()
+    out = ""
+    for m in ["It burns when I wee and I keep needing to go", "since yesterday, no temperature, no blood", "30 year old woman, not pregnant"]:
+        out = p.reply(m, "s1")["response"]
+    assert "pharmacist" in out
+    for label in ("OAB", "BPS", "UTI", "probability", "confidence"):
+        assert label not in out
+
+
+@pytest.mark.parametrize("text,level", [("numbness around my bottom and my legs feel weak", "emergency"),
+                                        ("I can't pass urine and my tummy is swollen", "urgent"),
+                                        ("high temperature and pain in my side below the ribs", "urgent"),
+                                        ("there is blood in my wee", "see GP soon")])
+def test_patient_red_flags_signpost_correctly(text, level):
+    assert PatientAssistant().reply(text, text)["level"] == level
+
+
+def test_report_reader_finds_tumour_and_catheter_problem_and_respects_negation():
+    r = read_report("Cystoscopy: trabeculated bladder, small papillary lesion. SPC in situ, encrusted. No stones.")
+    names = [f["finding"] for f in r["findings"]]
+    assert names[0] == "Possible bladder tumour" and "Catheter problem" in names and "Bladder stone" not in names
+    assert not read_report("Normal cystoscopy. No tumour seen.")["urgent"]
+
+
+class FakeVision(VisionBackend):
+    name, available = "fake", True
+
+    def describe(self, image, modality, question):
+        return "Moderate left hydroureter to the level of a distal stone. Suprapubic catheter balloon within the bladder."
+
+
+def test_imaging_requires_consent_and_uses_vision_backend(tmp_path):
+    from PIL import Image
+    img = tmp_path / "scan.png"
+    Image.new("RGB", (64, 64), "gray").save(img)
+    assert analyse([str(img)], consent=False)["ok"] is False
+    r = analyse([str(img)], modality="CT", backend=FakeVision(), consent=True)
+    assert r["ok"] and "hydroureter" in r["markdown"] and "Clinician sign-off" in r["markdown"]
+
+
+def test_dicom_identifiers_are_removed(tmp_path):
+    pydicom = pytest.importorskip("pydicom")
+    import numpy as np
+    from pydicom.dataset import FileDataset, FileMetaDataset
+    from pydicom.uid import ExplicitVRLittleEndian, generate_uid
+    from uroagent.imaging import load_file
+    meta = FileMetaDataset()
+    meta.MediaStorageSOPClassUID, meta.MediaStorageSOPInstanceUID, meta.TransferSyntaxUID = "1.2.840.10008.5.1.4.1.1.2", generate_uid(), ExplicitVRLittleEndian
+    path = tmp_path / "ct.dcm"
+    ds = FileDataset(str(path), {}, file_meta=meta, preamble=b"\0" * 128)
+    ds.PatientName, ds.PatientID, ds.Modality = "Test^Person", "123", "CT"
+    ds.Rows = ds.Columns = 32
+    ds.BitsAllocated, ds.BitsStored, ds.HighBit, ds.PixelRepresentation = 16, 16, 15, 1
+    ds.SamplesPerPixel, ds.PhotometricInterpretation = 1, "MONOCHROME2"
+    ds.PixelData = np.zeros((32, 32), dtype="int16").tobytes()
+    ds.save_as(str(path), enforce_file_format=True)
+    f = load_file(str(path))
+    assert f.image is not None and "PatientName" in f.warnings[0] and f.metadata["Modality"] == "CT"

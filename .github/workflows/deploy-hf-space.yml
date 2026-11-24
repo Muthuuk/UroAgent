@@ -37,5 +37,9 @@ jobs:
                             allow_patterns=["app.py", "LICENSE", "uroagent/**", "knowledge/**"])
           for src, dst in [("space/README.md", "README.md"), ("space/requirements.txt", "requirements.txt")]:
               api.upload_file(path_or_fileobj=src, path_in_repo=dst, repo_id=repo, repo_type="space")
+          # Load the MedGemma image model on the Space. The token lets the Space download MedGemma,
+          # which is a gated model: accept its terms once at huggingface.co/google/medgemma-4b-it
+          api.add_space_variable(repo, "UROAGENT_LOAD_VISION", "1")
+          api.add_space_secret(repo, "HF_TOKEN", os.environ["HF_TOKEN"])
           print("Deployed to https://huggingface.co/spaces/" + repo)
           PY

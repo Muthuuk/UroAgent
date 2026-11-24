@@ -5,7 +5,7 @@
 ![Tests](https://github.com/Muthuuk/UroAgent/actions/workflows/tests.yml/badge.svg)
 ![Licence](https://img.shields.io/badge/licence-MIT-green)
 
-**A multi-agent decision-support tool for three common bladder conditions: overactive bladder (OAB), bladder pain syndrome (BPS) and urinary tract infection (UTI).**
+**A multi-agent decision-support tool for three common bladder conditions: overactive bladder (OAB), bladder pain syndrome (BPS) and urinary tract infection (UTI). It has a clinician mode (assessment, imaging and reports) and a patient mode (plain-English symptom advice).**
 
 UroAgent is the working implementation of the case study *AI Agent for Urological Prediction Models: A Full Modern Software Engineering Approach* (Ramachandran, 2026, ref. CS-URO-AI-2025-001). It triages a clinician's note, checks safety rules, suggests the most likely pattern with reasons, retrieves and cites guidance, estimates symptom scores, remembers the conversation, and logs every step.
 
@@ -22,6 +22,41 @@ UroAgent is the working implementation of the case study *AI Agent for Urologica
 | **Your computer** | `pip install -r requirements.txt`, then `python app.py` (web app) or `python -m uroagent.cli demo` (text demo) | Python 3.10 or later |
 
 No API key is needed. An optional step can reword the final answer with Claude if `ANTHROPIC_API_KEY` is set (`uroagent.agent.explain_with_llm`), but the language model can never change predictions, scores or safety decisions.
+
+## Two ways to use it
+
+| Mode | Who | What it does |
+|---|---|---|
+| **Patients: ask about symptoms** | People with bladder or urine symptoms | Plain-English chat. Understands everyday words ("it stings when I wee") and negatives ("no temperature"). Asks a few follow-up questions, then gives information, self-care tips and signposting to a pharmacist, GP, NHS 111 or 999. **Never shows a diagnosis, probability or score.** Red flags (for example blood in the urine, can't pass urine, fever with loin pain, numbness around the bottom) are handled first. |
+| **Clinicians: ask UroAgent** | Doctors, nurses, specialists | Assessment of a clinical note: safety rules, likely pattern with reasons, guideline citations, scores, SOAP report, memory across the conversation. |
+| **Clinicians: imaging and reports** | Doctors, nurses, specialists | Upload CT, MRI, ultrasound or contrast images (PNG, JPG, DICOM) and cystoscopy or radiology reports (PDF, text). Reports are read with transparent rules; images are described by the **MedGemma** medical image model against a urology checklist. |
+
+### Imaging and report analysis
+
+Images are described by **Google MedGemma** (`google/medgemma-4b-it`). It works through a fixed checklist:
+
+1. Image type and quality.
+2. Hydronephrosis.
+3. Dilated ureter (hydroureter) and its level.
+4. Bladder wall thickening, diverticula, stones and masses.
+5. Contrast reflux, only on contrast studies such as a micturating cystourethrogram.
+6. Position and condition of suprapubic or urethral catheters, ureteric stents and nephrostomies.
+7. Any urgent finding.
+
+Possibly urgent wording is flagged for prompt review.
+
+Cystoscopy and radiology reports are read with rules that clinicians can check. They pick out:
+
+- possible tumour and carcinoma in situ (flagged urgent);
+- Hunner lesions;
+- inflammation, trabeculation, diverticula, stones and strictures;
+- abnormal ureteric orifices;
+- hydronephrosis and reflux;
+- catheter status: present, satisfactory, or encrusted, blocked, bypassing or displaced.
+
+Negated findings such as "no tumour" are ignored.
+
+> **Safeguards.** Analysis only runs after the user confirms the files are anonymised or synthetic. Identifying DICOM fields are removed before analysis, and nothing is stored. Every output is labelled as an AI draft that must be reviewed by a radiologist or urologist. MedGemma is a research model: it can miss or invent findings, and it is not validated for these tasks. **Never upload real, identifiable patient images to the public demo.**
 
 ## How it works
 
@@ -48,7 +83,7 @@ The workflow runs as a **LangGraph StateGraph** (with a built-in fallback runner
 5. **Scoring.** ICIQ-OAB (0–16) and O'Leary-Sant (symptom index 0–20, problem index 0–16) calculators, plus clearly labelled estimates from free text.
 6. **Explain and respond.** A plain-English answer with reasons and cited guidance, a SOAP report, and a mandatory clinician sign-off line. Every turn is written to an audit log that stores a hash of the input, never the note itself.
 
-## The seven clinical tools (Model Context Protocol)
+## The clinical tools (Model Context Protocol)
 
 | Tool | What it does |
 |---|---|
@@ -59,6 +94,7 @@ The workflow runs as a **LangGraph StateGraph** (with a built-in fallback runner
 | `drug_interaction_checker` | Anticholinergic burden, mirabegron and blood pressure, nitrofurantoin and kidney function (illustrative rules) |
 | `audit_logger` | Appends a tamper-evident audit entry (timestamp, input hash, outcome) |
 | `guideline_version_checker` | Shows which guideline versions are in the knowledge base |
+| `imaging_report_reader` | Reads findings and catheter status from a cystoscopy or radiology report |
 
 Run them as a real MCP server for MCP clients such as Claude Desktop:
 
@@ -103,7 +139,9 @@ uroagent/
   classifier.py   RF + XGBoost + SVM ensemble, confidence gate, SHAP
   rag.py          hybrid BM25 + TF-IDF retrieval, rank fusion, re-ranking, compression
   scoring.py      ICIQ-OAB and O'Leary-Sant scoring
-  tools.py        seven MCP-style clinical tools (synthetic data)
+  patient.py      patient mode: plain-English chat, follow-up questions, signposting
+  imaging.py      image, DICOM and report analysis (MedGemma + report rules)
+  tools.py        eight MCP-style clinical tools (synthetic data)
   mcp_server.py   the tools as a real MCP server
   memory.py       SQLite conversation memory per thread
   evaluate.py     acceptance targets and fairness check
@@ -112,7 +150,7 @@ uroagent/
 knowledge/        guideline knowledge cards (paraphrased)
 notebooks/        UroAgent_Colab.ipynb
 space/            Hugging Face Space README and requirements
-tests/            15 tests: safety, routing, models, retrieval, memory, tools, MCP
+tests/            24 tests: safety, routing, models, retrieval, memory, tools, MCP, negation, patient mode, imaging
 app.py            web app entry point
 ```
 
@@ -132,7 +170,8 @@ python -m pytest -q                               # run the tests
 
 1. Create a Hugging Face access token with *write* permission (Hugging Face → Settings → Access Tokens).
 2. In this GitHub repository, open **Settings → Secrets and variables → Actions**. Add a secret `HF_TOKEN` (the token) and a variable `HF_SPACE` (for example `muthuuk/uroagent`).
-3. Push any change, or run the workflow by hand from the **Actions** tab. The Space is created if it does not exist.
+3. Create the Space once on huggingface.co (Gradio, free hardware). Then push any change, or run the workflow by hand from the **Actions** tab.
+4. To turn on image analysis, accept the MedGemma terms once at [huggingface.co/google/medgemma-4b-it](https://huggingface.co/google/medgemma-4b-it) with the same account. The workflow switches the image model on and passes the token to the Space; without accepted terms the app still runs and reads reports.
 
 **Manual.** Create a new Gradio Space and upload `app.py`, `LICENSE`, the `uroagent/` and `knowledge/` folders, and the two files in `space/` (as `README.md` and `requirements.txt`).
 

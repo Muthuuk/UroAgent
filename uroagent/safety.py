@@ -20,13 +20,15 @@ OUT_OF_SCOPE = {
 }
 
 RED_FLAG_RULES = [
-    ("visible haematuria", [r"visible (haematuria|hematuria|blood)", r"frank (haematuria|hematuria)", r"blood clots? in (the )?urine", r"red urine"],
+    ("visible haematuria", [r"visible (haematuria|hematuria|blood)", r"frank (haematuria|hematuria)", r"blood clots? in (the |my )?(urine|wee|pee)", r"red urine",
+      r"blood in (the |my )?(urine|wee|pee)", r"(pink|red|cola[- ]coloured) (urine|wee|pee)"],
      "Visible blood in the urine: consider the suspected cancer pathway (for example NICE NG12 for adults aged 45 and over). Do not attribute to OAB, BPS or simple UTI without assessment."),
-    ("possible pyelonephritis or sepsis", [r"loin pain", r"flank pain", r"rigors?", r"shaking", r"(temperature|temp|fever)[^.]{0,20}(38|39|40)", r"vomiting", r"confus"],
+    ("possible pyelonephritis or sepsis", [r"loin pain", r"flank pain", r"pain in (my|the) (side|back) (under|below) (my|the) ribs", r"rigors?", r"shaking", r"shivering",
+      r"(temperature|temp|fever)[^.]{0,20}(38|39|40)", r"high temperature", r"vomiting", r"being sick", r"confus", r"very unwell", r"really unwell"],
      "Signs of upper urinary tract infection or sepsis: assess urgently and follow local sepsis and pyelonephritis pathways."),
     ("urinary retention", [r"unable to (pass|void|wee)", r"can'?t pass urine", r"retention", r"painful distended bladder"],
      "Possible urinary retention: needs same-day assessment."),
-    ("possible cauda equina", [r"saddle (numbness|anaesthesia|anesthesia)", r"(new|sudden) (leg weakness|numbness)", r"back pain[^.]{0,40}(numb|weak)"],
+    ("possible cauda equina", [r"saddle (numbness|anaesthesia|anesthesia)", r"numb(ness)? (around|in) (my |the )?(bottom|genitals|back passage)", r"(new|sudden) (leg weakness|numbness)", r"back pain[^.]{0,40}(numb|weak)"],
      "Neurological red flags with bladder change: emergency assessment for cauda equina syndrome."),
     ("UTI in a man or recurrent upper tract", [r"\b(man|male|he|his)\b[^.]{0,80}(burning|dysuria|uti)"],
      "Urinary infection in a man is treated as complicated: send urine culture and follow local guidance."),
@@ -47,8 +49,10 @@ def out_of_scope_reason(text: str):
 
 
 def red_flags(text: str):
-    """Return a list of (name, advice) for every red-flag rule that fires."""
-    t = text.lower()
+    """Return a list of (name, advice) for every red-flag rule that fires (negated
+    phrases such as 'no blood in the urine' are ignored)."""
+    from .ner import remove_negated
+    t = remove_negated(" " + text.lower() + " ")
     hits = []
     for name, patterns, advice in RED_FLAG_RULES:
         if any(re.search(p, t) for p in patterns):
