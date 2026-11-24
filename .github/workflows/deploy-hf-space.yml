@@ -2,6 +2,8 @@
 # One-off setup in GitHub: Settings -> Secrets and variables -> Actions
 #   Secret   HF_TOKEN  = a Hugging Face access token with write permission
 #   Variable HF_SPACE  = your Space id, for example muthuuk/uroagent
+# If the first run fails with '402 Payment Required', create the Space on huggingface.co
+# (New Space -> Gradio -> CPU basic, free) and run this workflow again from the Actions tab.
 name: Deploy to Hugging Face Space
 on:
   push:
@@ -27,7 +29,10 @@ jobs:
           from huggingface_hub import HfApi
           api = HfApi(token=os.environ["HF_TOKEN"])
           repo = os.environ["HF_SPACE"]
-          api.create_repo(repo, repo_type="space", space_sdk="gradio", exist_ok=True)
+          if not api.repo_exists(repo, repo_type="space"):
+              # Hugging Face may refuse to create Spaces through the API for some accounts
+              # (HTTP 402). If so, create the Space once on the website and re-run this workflow.
+              api.create_repo(repo, repo_type="space", space_sdk="gradio")
           api.upload_folder(folder_path=".", repo_id=repo, repo_type="space",
                             allow_patterns=["app.py", "LICENSE", "uroagent/**", "knowledge/**"])
           for src, dst in [("space/README.md", "README.md"), ("space/requirements.txt", "requirements.txt")]:
