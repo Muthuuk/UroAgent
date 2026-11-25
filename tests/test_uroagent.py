@@ -159,3 +159,18 @@ def test_dicom_identifiers_are_removed(tmp_path):
     ds.save_as(str(path), enforce_file_format=True)
     f = load_file(str(path))
     assert f.image is not None and "PatientName" in f.warnings[0] and f.metadata["Modality"] == "CT"
+
+
+def test_imaging_shows_model_error_instead_of_failing(tmp_path):
+    from PIL import Image
+    from uroagent.imaging import analyse, VisionBackend
+
+    class BrokenVision(VisionBackend):
+        name, available = "broken", True
+        def describe(self, image, modality, question):
+            raise RuntimeError("GPU quota exceeded")
+
+    p = tmp_path / "x.png"
+    Image.new("RGB", (32, 32)).save(p)
+    out = analyse([str(p)], backend=BrokenVision(), consent=True)
+    assert "could not analyse" in out["markdown"] and "GPU quota exceeded" in out["markdown"]

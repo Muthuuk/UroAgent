@@ -173,7 +173,7 @@ class MedGemmaBackend(VisionBackend):
     """Google MedGemma (image-text-to-text). Needs a GPU and accepted model terms on Hugging Face."""
     name = "MedGemma"
 
-    def __init__(self, model_id=None, max_new_tokens=700):
+    def __init__(self, model_id=None, max_new_tokens=512):
         import torch
         from transformers import AutoModelForImageTextToText, AutoProcessor
         self.model_id = model_id or os.environ.get("UROAGENT_VISION_MODEL", "google/medgemma-4b-it")
@@ -240,7 +240,12 @@ def analyse(paths, modality="CT", question="", backend=None, consent=False) -> d
                 sections.append(f"- {icon} **{x['finding']}** ({x['priority']}): {x['note']}")
             flags += [x["note"] for x in r["urgent"]]
         elif f.image is not None:
-            text = backend.describe(f.image, modality, question)
+            try:
+                text = backend.describe(f.image, modality, question)
+            except Exception as e:             # GPU quota, time-out or model error: show it instead of failing silently
+                sections.append(f"**The image model could not analyse this image:** {type(e).__name__}: {str(e)[:300]}")
+                sections.append("")
+                continue
             sections.append(f"**Image description ({backend.name}):**\n\n{text}")
             if re.search(URGENT_IMAGE_WORDS, text.lower()):
                 flags.append(f"{f.name}: the image description mentions a potentially urgent finding - please review promptly.")

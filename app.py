@@ -16,7 +16,13 @@ except ImportError:
 vision = load_vision_backend()
 if spaces is not None:
     if getattr(vision, "available", False):
-        vision.describe = spaces.GPU(duration=120)(vision.describe)   # GPU attached only while describing an image
+        _describe = vision.describe
+
+        @spaces.GPU(duration=60)              # 60 s fits inside the free ZeroGPU allowance
+        def _gpu_describe(image, modality, question):
+            return _describe(image, modality, question)
+
+        vision.describe = _gpu_describe   # GPU attached only while describing an image
     else:
         @spaces.GPU(duration=5)
         def _zerogpu_placeholder():   # ZeroGPU expects at least one GPU function

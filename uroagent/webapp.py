@@ -49,7 +49,10 @@ def build_app(agent, patient=None, vision=None):
         paths = [f if isinstance(f, str) else getattr(f, "name", str(f)) for f in (files or [])]
         if not paths:
             return "Please upload at least one image, DICOM file or report."
-        return analyse(paths, modality=modality, question=question, backend=vision, consent=consent)["markdown"]
+        try:
+            return analyse(paths, modality=modality, question=question, backend=vision, consent=consent)["markdown"]
+        except Exception as e:                 # show the problem on screen rather than an empty box
+            return f"**Something went wrong:** {type(e).__name__}: {str(e)[:400]}"
 
     def chat(message, history, thread_id):
         if not message.strip():
@@ -126,7 +129,7 @@ def build_app(agent, patient=None, vision=None):
                     consent = gr.Checkbox(label="I confirm these files are anonymised or synthetic and contain no identifiable patient information")
                     go = gr.Button("Analyse", variant="primary")
                 with gr.Column():
-                    img_out = gr.Markdown()
+                    img_out = gr.Markdown("Results appear here. The first image can take 1-2 minutes while the GPU starts.")
             go.click(run_imaging, [files, modality, question, consent], img_out)
         with gr.Tab("Score calculator"):
             gr.Markdown("Item scores from the licensed ICIQ-OAB (0-4 each) and O'Leary-Sant questionnaires.")
