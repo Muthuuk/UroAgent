@@ -39,15 +39,21 @@ Images are described by **Google MedGemma** (`google/medgemma-4b-it`). It works 
 2. Hydronephrosis.
 3. Dilated ureter (hydroureter) and its level.
 4. Bladder wall thickening, diverticula, stones and masses.
-5. Contrast reflux, only on contrast studies such as a micturating cystourethrogram.
-6. Position and condition of suprapubic or urethral catheters, ureteric stents and nephrostomies.
-7. Any urgent finding.
+5. Possible bladder cancer: focal wall thickening, a mass or filling defect, spread into the surrounding fat, and on MRI whether the muscle layer looks breached.
+6. Prostate: size, any focal lesion and its zone, and on prostate MRI a PI-RADS style impression, spread outside the capsule and seminal vesicle involvement.
+7. Spread of cancer: enlarged lymph nodes and bone lesions.
+8. Contrast reflux, only on contrast studies such as a micturating cystourethrogram.
+9. Position and condition of suprapubic or urethral catheters, ureteric stents and nephrostomies.
+10. Any urgent finding.
 
 Possibly urgent wording is flagged for prompt review.
 
 Cystoscopy and radiology reports are read with rules that clinicians can check. They pick out:
 
-- possible tumour and carcinoma in situ (flagged urgent);
+- possible bladder tumour, carcinoma in situ and muscle-invasive bladder cancer (VI-RADS 4-5, perivesical spread), and upper tract filling defects (flagged urgent);
+- prostate MRI results: PI-RADS 4-5 (urgent), PI-RADS 3 (review), PI-RADS 1-2 (low suspicion), described prostate cancer, and spread outside the prostate;
+- enlarged lymph nodes and possible bone metastases;
+- benign prostate enlargement;
 - Hunner lesions;
 - inflammation, trabeculation, diverticula, stones and strictures;
 - abnormal ureteric orifices;

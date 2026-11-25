@@ -26,6 +26,11 @@ CHECKLIST = [
     "kidneys: hydronephrosis (dilated collecting system), stones, masses",
     "ureters: dilatation (hydroureter) and its level, stones, strictures or other cause of obstruction",
     "bladder: wall thickening or trabeculation, diverticula, stones, filling defects or masses",
+    "possible bladder cancer: a focal or irregular wall thickening, a mass projecting into the bladder, a filling defect, "
+    "spread into the fat around the bladder; on MRI, say whether the muscle layer looks breached (VI-RADS style)",
+    "prostate: size (enlarged or not), any focal lesion and its zone (peripheral or transition); on prostate MRI, "
+    "a PI-RADS style impression, spread outside the prostate capsule, seminal vesicle involvement",
+    "spread of cancer: enlarged pelvic or abdominal lymph nodes, bone lesions (sclerotic or lytic), other organs",
     "contrast reflux into the ureters, only if this is a contrast study such as a micturating cystourethrogram",
     "catheters and tubes: suprapubic or urethral catheter, ureteric stent, nephrostomy - where the tip or balloon lies and "
     "whether it looks correctly placed, displaced, kinked or encrusted",
@@ -114,9 +119,32 @@ def _load_dicom(path, name):
 
 
 # ---------------------------------------------------------------- report reading (rules)
+_NOT_PROSTATE = r"(?<!prostate )(?<!prostatic )(?<!adeno)"
 REPORT_RULES = [
-    ("Possible bladder tumour", r"papillary|tumou?r|growth|mass|suspicious lesion|sessile lesion|carcinoma", "urgent",
+    ("Possible bladder tumour", _NOT_PROSTATE + r"(papillary|tumou?r|growth|mass|suspicious lesion|sessile lesion|carcinoma)", "urgent",
      "Suspicious bladder lesion: needs urgent urology review (suspected cancer pathway)."),
+    ("Possible muscle-invasive bladder cancer", r"vi-?rads\W*(score\W*)?[45]\b|muscle[- ]invasi|detrusor (muscle )?invasion|"
+     r"perivesical (fat )?(invasion|extension|stranding)|extravesical", "urgent",
+     "Features of muscle-invasive or locally advanced bladder cancer: urgent urology and oncology (MDT) review for staging."),
+    ("Upper tract filling defect", r"filling defect[^.]{0,40}(ureter|renal pelvis|collecting system|calyx|calyces)|"
+     r"(ureter|renal pelvis|collecting system)[^.]{0,40}filling defect", "urgent",
+     "Filling defect in the upper urinary tract: possible upper tract urothelial cancer, urgent urology review."),
+    ("Suspected prostate cancer (PI-RADS 4-5)", r"pi-?rads\W*(v?2(\.1)?\W*)?(score\W*|category\W*)?(of\W*)?[45]\b|likert\W*(score\W*)?[45]\b", "urgent",
+     "Lesion likely to be clinically significant prostate cancer: urgent urology review and targeted biopsy (suspected cancer pathway)."),
+    ("Equivocal prostate lesion (PI-RADS 3)", r"pi-?rads\W*(v?2(\.1)?\W*)?(score\W*|category\W*)?(of\W*)?3\b|likert\W*(score\W*)?3\b", "review",
+     "Equivocal prostate lesion: discuss biopsy using PSA density, risk factors and patient preference."),
+    ("Low suspicion prostate MRI (PI-RADS 1-2)", r"pi-?rads\W*(v?2(\.1)?\W*)?(score\W*|category\W*)?(of\W*)?[12]\b", "info",
+     "Low suspicion prostate MRI: biopsy may be avoided; follow local PSA surveillance advice."),
+    ("Prostate cancer described", r"prostat\w* (adeno)?carcinoma|prostate cancer|adenocarcinoma of the prostate|gleason|isup grade", "urgent",
+     "Prostate cancer described: ensure urology/oncology MDT review and staging."),
+    ("Spread outside the prostate", r"extra-?prostatic (extension|spread)|capsular (breach|extension)|seminal vesicle (invasion|involvement)", "urgent",
+     "Possible locally advanced prostate cancer: urgent MDT review and staging."),
+    ("Enlarged lymph nodes", r"lymphadenopathy|enlarged[^.]{0,20}(lymph )?nodes?|nodal (disease|metasta)", "review",
+     "Enlarged lymph nodes: may indicate spread of cancer; correlate with staging."),
+    ("Possible bone metastases", r"(bone|bony|osseous|skeletal|sclerotic|lytic)[^.]{0,20}(metasta|deposit|lesion)", "urgent",
+     "Possible bone spread: urgent oncology review; consider bone scan or PSMA PET as appropriate."),
+    ("Enlarged prostate", r"enlarged prostate|prostatomegaly|benign prostatic|prostat\w* (hyperplasia|enlargement)|median lobe", "routine",
+     "Prostate enlargement described: consistent with benign enlargement unless other features are present."),
     ("Carcinoma in situ suspected", r"\bcis\b|velvety|carcinoma in situ", "urgent", "Possible carcinoma in situ: urgent urology review and biopsy."),
     ("Hunner lesion", r"hunner", "routine", "Hunner lesion described: supports bladder pain syndrome with Hunner lesions; consider lesion-directed treatment."),
     ("Bladder inflammation", r"cystitis|erythema|inflam|oedema|edema|glomerulation", "routine", "Inflammatory change described."),
@@ -173,7 +201,7 @@ class MedGemmaBackend(VisionBackend):
     """Google MedGemma (image-text-to-text). Needs a GPU and accepted model terms on Hugging Face."""
     name = "MedGemma"
 
-    def __init__(self, model_id=None, max_new_tokens=350):
+    def __init__(self, model_id=None, max_new_tokens=450):
         import torch
         from transformers import AutoModelForImageTextToText, AutoProcessor
         self.model_id = model_id or os.environ.get("UROAGENT_VISION_MODEL", "google/medgemma-4b-it")

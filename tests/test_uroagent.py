@@ -174,3 +174,16 @@ def test_imaging_shows_model_error_instead_of_failing(tmp_path):
     Image.new("RGB", (32, 32)).save(p)
     out = analyse([str(p)], backend=BrokenVision(), consent=True)
     assert "could not analyse" in out["markdown"] and "GPU quota exceeded" in out["markdown"]
+
+
+def test_report_reader_flags_prostate_and_bladder_cancer():
+    from uroagent.imaging import read_report
+    names = lambda t: {f["finding"] for f in read_report(t)["findings"]}
+    r = names("mpMRI prostate: 14 mm lesion left peripheral zone, PI-RADS 5. Seminal vesicle invasion suspected. "
+              "Enlarged left obturator lymph node. Prostate enlarged, median lobe.")
+    assert {"Suspected prostate cancer (PI-RADS 4-5)", "Spread outside the prostate", "Enlarged lymph nodes", "Enlarged prostate"} <= r
+    assert "Possible bladder tumour" not in r
+    assert "Low suspicion prostate MRI (PI-RADS 1-2)" in names("Prostate MRI: PI-RADS 2, no focal lesion.")
+    assert "Spread outside the prostate" not in names("PI-RADS 4 lesion. No extraprostatic extension.")
+    b = names("CT urogram: 3 cm enhancing mass right bladder wall with perivesical fat stranding. Sclerotic bone lesions in the pelvis.")
+    assert {"Possible bladder tumour", "Possible muscle-invasive bladder cancer", "Possible bone metastases"} <= b

@@ -28,7 +28,7 @@ PATIENT_EXAMPLES = ["It burns when I wee and I keep needing to go to the toilet.
                     "I keep getting sudden urges to pee and sometimes leak before I get there.",
                     "I've had a sore bladder for months and it's worse when it's full.",
                     "There's blood in my wee."]
-MODALITIES = ["CT", "MRI", "Ultrasound", "X-ray / KUB", "Micturating cystourethrogram (contrast)", "Cystoscopy image",
+MODALITIES = ["CT", "CT urogram", "MRI", "MRI prostate (multiparametric)", "MRI bladder", "Ultrasound", "X-ray / KUB", "Micturating cystourethrogram (contrast)", "Cystoscopy image",
               "Report only (cystoscopy or radiology)"]
 
 
@@ -125,7 +125,7 @@ def build_app(agent, patient=None, vision=None):
                     files = gr.File(file_count="multiple", label="Images, DICOM files or reports",
                                     file_types=[".png", ".jpg", ".jpeg", ".dcm", ".dicom", ".pdf", ".txt"])
                     modality = gr.Dropdown(MODALITIES, value="CT", label="Type of study")
-                    question = gr.Textbox(label="Clinical question", placeholder="e.g. Is the left ureter dilated? Is the SPC balloon in the bladder?")
+                    question = gr.Textbox(label="Clinical question", placeholder="e.g. Is the left ureter dilated? Is the SPC balloon in the bladder? Any sign of bladder or prostate cancer?")
                     consent = gr.Checkbox(label="I confirm these files are anonymised or synthetic and contain no identifiable patient information")
                     go = gr.Button("Analyse", variant="primary")
                 with gr.Column():
