@@ -173,7 +173,7 @@ class MedGemmaBackend(VisionBackend):
     """Google MedGemma (image-text-to-text). Needs a GPU and accepted model terms on Hugging Face."""
     name = "MedGemma"
 
-    def __init__(self, model_id=None, max_new_tokens=512):
+    def __init__(self, model_id=None, max_new_tokens=350):
         import torch
         from transformers import AutoModelForImageTextToText, AutoProcessor
         self.model_id = model_id or os.environ.get("UROAGENT_VISION_MODEL", "google/medgemma-4b-it")

@@ -18,7 +18,7 @@ if spaces is not None:
     if getattr(vision, "available", False):
         _describe = vision.describe
 
-        @spaces.GPU(duration=60)              # 60 s fits inside the free ZeroGPU allowance
+        @spaces.GPU(duration=30)              # short GPU slot so it fits the small free ZeroGPU allowance
         def _gpu_describe(image, modality, question):
             return _describe(image, modality, question)
 
