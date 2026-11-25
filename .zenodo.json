@@ -1,0 +1,18 @@
+{
+  "title": "UroAgent: multi-agent decision support for overactive bladder, bladder pain syndrome and urinary tract infection (research demonstrator)",
+  "upload_type": "software",
+  "description": "<p>UroAgent is an open-source research demonstrator of a trustworthy multi-agent AI tool for overactive bladder (OAB), bladder pain syndrome (BPS) and urinary tract infection (UTI). A LangGraph state graph coordinates triage, deterministic red-flag and scope rules, a soft-voting machine learning ensemble with a confidence gate and SHAP explanations, hybrid guideline retrieval, symptom scoring and explanation. It provides a patient symptom assistant, a clinician agent with memory, imaging and report analysis, a score calculator, Model Context Protocol clinical tools and a built-in evaluation of acceptance targets and fairness.</p><p>Research demonstrator only: synthetic data, not a medical device. Every recommendation needs clinician review.</p>",
+  "creators": [
+    {
+      "name": "Ramachandran, Muthu",
+      "affiliation": "Forti5 Technologies Ltd; CAIDS, University of South Africa",
+      "orcid": "0000-0002-5303-3100"
+    }
+  ],
+  "license": "MIT",
+  "access_right": "open",
+  "keywords": ["AI agent", "agentic AI", "urology", "clinical decision support", "software engineering", "LangGraph", "Model Context Protocol", "explainable AI", "overactive bladder", "bladder pain syndrome", "urinary tract infection"],
+  "related_identifiers": [
+    {"identifier": "https://huggingface.co/spaces/muthuuk/uroagent", "relation": "isSupplementedBy", "resource_type": "software"}
+  ]
+}

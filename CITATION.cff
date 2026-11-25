@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "UroAgent: multi-agent decision support for overactive bladder, bladder pain syndrome and urinary tract infection (research demonstrator)"
+version: 0.1.0
+date-released: 2026-11-25
+license: MIT
+repository-code: "https://github.com/Muthuuk/UroAgent"
+url: "https://huggingface.co/spaces/muthuuk/uroagent"
+authors:
+  - family-names: Ramachandran
+    given-names: Muthu
+    orcid: "https://orcid.org/0000-0002-5303-3100"
+    affiliation: "Forti5 Technologies Ltd; CAIDS, University of South Africa"
+keywords:
+  - AI agent
+  - urology
+  - clinical decision support
+  - software engineering
