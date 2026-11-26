@@ -187,3 +187,9 @@ def test_report_reader_flags_prostate_and_bladder_cancer():
     assert "Spread outside the prostate" not in names("PI-RADS 4 lesion. No extraprostatic extension.")
     b = names("CT urogram: 3 cm enhancing mass right bladder wall with perivesical fat stranding. Sclerotic bone lesions in the pelvis.")
     assert {"Possible bladder tumour", "Possible muscle-invasive bladder cancer", "Possible bone metastases"} <= b
+
+
+def test_home_tiles_point_to_real_tabs():
+    from uroagent.webapp import HOME_TILES, CSS
+    assert [t for t, _ in HOME_TILES] == ["patients", "clinician", "imaging", "scores", "tools", "evaluation"]
+    assert "prefers-reduced-motion" in CSS
