@@ -14,7 +14,7 @@ import os
 import re
 import time
 
-from . import DISCLAIMER, safety, tools
+from . import DISCLAIMER, __version__, safety, tools
 from .classifier import EnsembleClassifier
 from .memory import SQLiteCheckpointer
 from .ner import describe, extract_entities
@@ -155,7 +155,7 @@ class UroAgent:
         soap = self._soap(state)
         audit = tools.audit_logger({"input": state["clinical_note"], "query_type": state["query_type"],
                                     "prediction": state.get("prediction"), "confidence": state.get("confidence"),
-                                    "citations": len(state.get("guideline_citations") or []), "model_version": "uroagent-0.1.0"})
+                                    "citations": len(state.get("guideline_citations") or []), "model_version": f"uroagent-{__version__}"})
         return {"response": response, "soap_report": soap,
                 "trace": _trace(state, f"Response: written with {len(state.get('guideline_citations') or [])} citations; audit id {audit['audit_id']}.")}
 
