@@ -4,6 +4,13 @@ title: "UroAgent: multi-agent decision support for overactive bladder, bladder p
 version: 0.2.0
 date-released: 2026-11-27
 license: MIT
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.24599934
+    description: "Zenodo archive of v0.2.0"
+  - type: doi
+    value: 10.5281/zenodo.24541153
+    description: "Zenodo archive of v0.1.0, the version described in the paper"
 repository-code: "https://github.com/Muthuuk/UroAgent"
 url: "https://huggingface.co/spaces/muthuuk/uroagent"
 authors:

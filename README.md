@@ -4,6 +4,7 @@
 [![Hugging Face Space](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Space-yellow)](https://huggingface.co/spaces/muthuuk/uroagent)
 ![Tests](https://github.com/Muthuuk/UroAgent/actions/workflows/tests.yml/badge.svg)
 ![Licence](https://img.shields.io/badge/licence-MIT-green)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24599934.svg)](https://doi.org/10.5281/zenodo.24599934)
 
 **A multi-agent decision-support tool for three common bladder conditions: overactive bladder (OAB), bladder pain syndrome (BPS) and urinary tract infection (UTI). It has a clinician mode (assessment, imaging and reports) and a patient mode (plain-English symptom advice).**
 
@@ -197,12 +198,26 @@ Any clinical use would need a clinical safety case (DCB0129 and DCB0160), MHRA c
 
 ## Citation
 
+Each release is archived on Zenodo with its own DOI:
+
+| Version | DOI | Notes |
+|---|---|---|
+| v0.2.0 (27 Nov 2026) | [10.5281/zenodo.24599934](https://doi.org/10.5281/zenodo.24599934) | Adds the welcome home page and automatic MedGemma loading in Colab |
+| v0.1.0 (25 Nov 2026) | [10.5281/zenodo.24541153](https://doi.org/10.5281/zenodo.24541153) | The version described in the paper |
+
+To cite the exact version used in a paper, use its own DOI. APA style:
+
+Ramachandran, M. (2026). *UroAgent: Multi-agent decision support for overactive bladder, bladder pain syndrome and urinary tract infection* (Version 0.1.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.24541153
+
 ```bibtex
-@misc{ramachandran2026uroagent,
-  author = {Ramachandran, Muthu},
-  title  = {UroAgent: a multi-agent decision-support demonstrator for urology},
-  year   = {2026},
-  note   = {Implementation of case study CS-URO-AI-2025-001. https://github.com/Muthuuk/UroAgent}
+@software{ramachandran2026uroagent,
+  author    = {Ramachandran, Muthu},
+  title     = {{UroAgent: multi-agent decision support for overactive bladder, bladder pain syndrome and urinary tract infection (research demonstrator)}},
+  year      = {2026},
+  version   = {0.1.0},
+  publisher = {Zenodo},
+  doi       = {10.5281/zenodo.24541153},
+  url       = {https://doi.org/10.5281/zenodo.24541153}
 }
 ```
 
