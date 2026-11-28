@@ -1,3 +1,9 @@
+## [Unreleased]
+### Added
+- Click-to-load samples in the imaging tab: three computer-drawn CT teaching phantoms (SPC balloon, bladder wall mass, dilated ureters with a stone) and three fictional reports (cystoscopy, PI-RADS 4 prostate MRI, CT urogram).
+### Fixed
+- The report reader now tells a stone in the kidney or ureter apart from a bladder stone.
+
 # Changelog
 
 ## 0.2.0 - 2026-11-27

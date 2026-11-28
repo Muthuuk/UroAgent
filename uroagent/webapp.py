@@ -1,5 +1,6 @@
 """Gradio web app for UroAgent: runs in Colab (share link) and on Hugging Face Spaces."""
 import json
+import os
 import uuid
 
 import gradio as gr
@@ -28,6 +29,24 @@ PATIENT_EXAMPLES = ["It burns when I wee and I keep needing to go to the toilet.
                     "I keep getting sudden urges to pee and sometimes leak before I get there.",
                     "I've had a sore bladder for months and it's worse when it's full.",
                     "There's blood in my wee."]
+EXAMPLES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "examples")
+
+
+def _ex(name):
+    return os.path.join(EXAMPLES_DIR, name)
+
+
+# Click-to-load samples for the imaging tab. The CT pictures are computer-drawn teaching
+# phantoms and the reports are fictional, so they are safe to ship in a public demo.
+IMAGING_EXAMPLES = [
+    [[_ex("ct_pelvis_spc_catheter.png")], "CT", "Is the SPC balloon in the bladder?", True],
+    [[_ex("ct_pelvis_bladder_mass.png")], "CT", "Any sign of bladder cancer?", True],
+    [[_ex("ct_pelvis_bilateral_hydroureter.png")], "CT", "Are the ureters dilated? Is there a stone?", True],
+    [[_ex("report_cystoscopy_spc.txt")], "Cystoscopy image", "Summarise the findings and any sign of bladder cancer", True],
+    [[_ex("report_mri_prostate_pirads4.txt")], "MRI prostate (multiparametric)", "Any sign of prostate cancer?", True],
+    [[_ex("report_ct_urogram.txt")], "CT urogram", "Is the left ureter dilated? Is the SPC balloon in the bladder?", True],
+]
+
 MODALITIES = ["CT", "CT urogram", "MRI", "MRI prostate (multiparametric)", "MRI bladder", "Ultrasound", "X-ray / KUB", "Micturating cystourethrogram (contrast)", "Cystoscopy image",
               "Report only (cystoscopy or radiology)"]
 
@@ -142,6 +161,8 @@ def build_app(agent, patient=None, vision=None):
                         go = gr.Button("Analyse", variant="primary")
                     with gr.Column():
                         img_out = gr.Markdown("Results appear here. The first image can take 1-2 minutes while the GPU starts.")
+                gr.Examples(IMAGING_EXAMPLES, inputs=[files, modality, question, consent],
+                            label="Samples to try - click one, then press Analyse (synthetic CT phantoms and fictional reports, not real patients)")
                 go.click(run_imaging, [files, modality, question, consent], img_out)
             with gr.Tab("Score calculator", id="scores"):
                 gr.Markdown("Item scores from the licensed ICIQ-OAB (0-4 each) and O'Leary-Sant questionnaires.")
@@ -186,6 +207,8 @@ def _attach_style(demo):
 
     def launch(*args, **kwargs):
         kwargs["css"] = CSS + (kwargs.get("css") or "")
+        # let Gradio serve the bundled sample files even when launched from another folder (e.g. Colab)
+        kwargs["allowed_paths"] = list(kwargs.get("allowed_paths") or []) + [EXAMPLES_DIR]
         return original(*args, **kwargs)
 
     demo.launch = launch

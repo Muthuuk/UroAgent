@@ -1,0 +1,10 @@
+FICTIONAL TEACHING REPORT - not a real patient
+
+MRI prostate (multiparametric).
+Indication: raised PSA 7.8, prostate volume 48 ml.
+
+Findings: A 12 mm lesion in the left peripheral zone, mid gland, with low signal on T2 and restricted diffusion on DWI/ADC.
+PI-RADS 4. No extraprostatic extension seen. Seminal vesicles are normal.
+No enlarged pelvic lymph nodes. No suspicious bone lesions in the field of view.
+
+Conclusion: PI-RADS 4 lesion left peripheral zone. Recommend targeted biopsy.
