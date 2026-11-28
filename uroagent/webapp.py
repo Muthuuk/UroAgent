@@ -151,6 +151,11 @@ def build_app(agent, patient=None, vision=None):
                           "Colab choose a T4 GPU runtime, add an HF_TOKEN secret and run all cells again." + (f" ({vision.load_error})" if getattr(vision, "load_error", "") else ""))
                 gr.Markdown("Upload CT, MRI, ultrasound or contrast images (PNG, JPG or DICOM) and cystoscopy or radiology reports "
                             f"(PDF or text). {status}\n\n**{IMAGING_DISCLAIMER}**")
+                gr.Markdown("### Option 1 - try a sample (no upload needed)\n"
+                            "Click a row in **Samples** at the bottom of this section to fill in the boxes, then press **Analyse**. "
+                            "The CT pictures are computer-drawn teaching phantoms and the reports are fictional.\n\n"
+                            "### Option 2 - upload your own anonymised file\n"
+                            "Click the upload box to choose a file from your computer.")
                 with gr.Row():
                     with gr.Column():
                         files = gr.File(file_count="multiple", label="Images, DICOM files or reports",
@@ -159,10 +164,10 @@ def build_app(agent, patient=None, vision=None):
                         question = gr.Textbox(label="Clinical question", placeholder="e.g. Is the left ureter dilated? Is the SPC balloon in the bladder? Any sign of bladder or prostate cancer?")
                         consent = gr.Checkbox(label="I confirm these files are anonymised or synthetic and contain no identifiable patient information")
                         go = gr.Button("Analyse", variant="primary")
+                        gr.Examples(IMAGING_EXAMPLES, inputs=[files, modality, question, consent], label="Samples",
+                                    examples_per_page=6)
                     with gr.Column():
                         img_out = gr.Markdown("Results appear here. The first image can take 1-2 minutes while the GPU starts.")
-                gr.Examples(IMAGING_EXAMPLES, inputs=[files, modality, question, consent],
-                            label="Samples to try - click one, then press Analyse (synthetic CT phantoms and fictional reports, not real patients)")
                 go.click(run_imaging, [files, modality, question, consent], img_out)
             with gr.Tab("Score calculator", id="scores"):
                 gr.Markdown("Item scores from the licensed ICIQ-OAB (0-4 each) and O'Leary-Sant questionnaires.")
